@@ -112,10 +112,8 @@ if ( ! class_exists( 'AdminApiSettings' ) ) {
 					<a href="?page=<?php echo $_GET['page']; ?>&tab=p_code" class="nav-tab <?php echo $active_tab == 'p_code' ? 'nav-tab-active' : ''; ?>">Purchase Code</a>
 					<?php */ ?>
 				<?php //if ($is_elevened) { ?>
-					<?php /* ?>
 					<a href="?page=<?php echo $_GET['page']; ?>&tab=notify"
 						class="nav-tab <?php echo $active_tab == 'notify' ? 'nav-tab-active' : ''; ?>">Push Notification</a>
-					<?php */ ?>
 				<?php //} ?>
 				</h2>
 	
@@ -128,9 +126,9 @@ if ( ! class_exists( 'AdminApiSettings' ) ) {
 					$this->iap->render_settings_page();
 				} else if ( $active_tab == 'contacts' ) {
 					$this->contacts->render_settings_page();
-				}*/ /*else if ( $active_tab == 'notify' ) {
+				}*/ else if ( $active_tab == 'notify' ) {
 					$this->notify->houzi_notify_tab();
-				}*/
+				}
 	
 				?>
 			</div>

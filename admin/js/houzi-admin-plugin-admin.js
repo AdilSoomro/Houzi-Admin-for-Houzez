@@ -231,10 +231,16 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         // Handle the response from the PHP function
         console.log(response);
+        if (response.success) {
+            alert(response.data.message || "Notification sent!");
+        } else {
+            alert("Error: " + (response.data.reason || "Failed to send notification."));
+        }
       },
       error: function (xhr, status, error) {
         // Handle errors, if any
         console.log(error);
+        alert("AJAX Error: " + error);
       },
     });
   });

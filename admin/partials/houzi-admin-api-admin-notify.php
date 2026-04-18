@@ -1,9 +1,4 @@
 <?php
-use onesignal\client\api\DefaultApi;
-use onesignal\client\Configuration;
-use onesignal\client\model\Notification;
-use onesignal\client\model\StringMap;
-
 /**
  * Provide a admin area view for the plugin
  *
@@ -315,153 +310,105 @@ class AdminApiNotify
 
     public function test_notification()
     {
-        if (!$this->houzi_notify_options || empty($this->houzi_notify_options)) {
-			return;
-		}
-        $onesingnal_app_id = (
-            array_key_exists("onesingnal_app_id", $this->houzi_notify_options) &&
-            isset($this->houzi_notify_options['onesingnal_app_id'])
-        )   ?   $this->houzi_notify_options['onesingnal_app_id']     :       "";
-        if (empty($onesingnal_app_id)) return;
+        $original_app_user_id = get_option('houzi_original_app_user_id');
+        $expiry_date    = get_option('houzi_license_expiry');
 
-        $onesingnal_api_key_token = (
-            array_key_exists("onesingnal_api_key_token", $this->houzi_notify_options) &&
-            isset($this->houzi_notify_options['onesingnal_api_key_token'])
-        )   ?   $this->houzi_notify_options['onesingnal_api_key_token']     :       "";
-        if (empty($onesingnal_api_key_token)) return;
-
-        // $onesingnal_user_key_token = (
-        //     array_key_exists("onesingnal_user_key_token", $this->houzi_notify_options) &&
-        //     isset($this->houzi_notify_options['onesingnal_user_key_token'])
-        // )   ?   $this->houzi_notify_options['onesingnal_user_key_token']     :       "";
-        // if (empty($onesingnal_user_key_token)) return;
-
-        $config = Configuration::getDefaultConfiguration()
-            ->setAppKeyToken($this->houzi_notify_options['onesingnal_api_key_token']);
-            // ->setUserKeyToken($this->houzi_notify_options['onesingnal_user_key_token']);
-
-        $apiInstance = new DefaultApi(
-            new GuzzleHttp\Client(),
-            $config
-        );
+        if (empty($original_app_user_id) || empty($expiry_date)) {
+            wp_send_json_error(array('reason' => 'Please save a valid license (App User ID and expiry) first.'));
+            return;
+        }
 
         $dataArray = $_POST['data'];
+        $title = $dataArray['title'] ?? 'Houzi Test Notification';
+        $message = $dataArray['message'] ?? 'This a test notification from your WordPress website';
 
-        $admin_users = get_users(
-            array(
-                'role__in' => array('administrator'),
-                // Specify the role(s) of the admin user(s)
-                'fields' => array('user_email'),
-                // Retrieve only the email field
-            )
-        );
+        $current_user = wp_get_current_user();
+        $email = $current_user->user_email;
 
-        // Loop through the admin users and retrieve their email addresses
-        $admin_emails = array();
-        foreach ($admin_users as $admin_user) {
-            $admin_emails[] = sha1($admin_user->user_email);
-        }
-
-        $aliases = array(
-            "external_id" => $admin_emails,
-        );
-
-        $notification = $this->prepareNotification($dataArray["title"], $dataArray["message"], $aliases);
-
-        $result = $apiInstance->createNotification($notification);
-    }
-
-    function prepareNotification($enHeading, $enContent, $externalIds, $data = [], $badge=0): Notification
-    {
-        $headingContent = new StringMap();
-        $headingContent->setEn($enHeading);
-
-        $messageContent = new StringMap();
-        $messageContent->setEn($enContent);
-
-        $notification = new Notification();
-        $notification->setAppId($this->houzi_notify_options['onesingnal_app_id']);
-        $notification->setHeadings($headingContent);
-        $notification->setContents($messageContent);
-        $notification->setCollapseId(strval(time()));
-        $notification->setIosBadgeType('SetTo');
-        $notification->setIosBadgeCount($badge);
-        if (count($data) > 0) {
-            $notification->setData($data);
-        }
-
-        $type = $data['type'];
-
-        if (isset($type) && !empty($type) && $type == 'messages') {
-            $thread_id = $data['thread_id'];
-
-            if (isset($thread_id) && !empty($thread_id)) {
-                $notification->setThreadId($thread_id);
-                $notification->setAndroidGroup($thread_id);
-            }
-        }
-
-        error_log(json_encode($notification));
-
-        // $notification->setIncludedSegments(['Subscribed Users']);
-
-        // $notification->setIncludeExternalUserIds($externalIds);
-        $notification->setIncludeAliases($externalIds);
-
-        // $notification->setChannelForExternalUserIds("push");
-        $notification->setTargetChannel("push");
-
-        return $notification;
+        // Call the official send_push_notification method which handles Firebase & validation
+        $this->send_push_notification($title, $message, $email, $message, array('type' => 'test'));
+        
+        wp_send_json_success(array('message' => 'Test notification request sent to Firebase.'));
     }
 
     public function send_push_notification($title, $message, $email, $message_full, $data = [])
     {
         if (empty($email)) {
-            return; 
-    	}
-        if (!empty($data) ) {
-            $type = (array_key_exists("type",$data) && isset($data['type'])) ? $data["type"] : "general";
+            return;
+        }
+
+        // Save notification to the in-app notification store.
+        if (!empty($data)) {
+            $type = (array_key_exists('type', $data) && isset($data['type'])) ? $data['type'] : 'general';
             $this->user_notification->create_notification($email, $title, $message_full, $type, $data);
         }
-        if (!$this->houzi_notify_options || empty($this->houzi_notify_options)) {
-			return;
-		}
-        $onesingnal_app_id = (
-            array_key_exists("onesingnal_app_id", $this->houzi_notify_options) &&
-            isset($this->houzi_notify_options['onesingnal_app_id'])
-        )   ?   $this->houzi_notify_options['onesingnal_app_id']     :       "";
-        if (empty($onesingnal_app_id)) return;
 
-        $onesingnal_api_key_token = (
-            array_key_exists("onesingnal_api_key_token", $this->houzi_notify_options) &&
-            isset($this->houzi_notify_options['onesingnal_api_key_token'])
-        )   ?   $this->houzi_notify_options['onesingnal_api_key_token']     :       "";
-        if (empty($onesingnal_api_key_token)) return;
+        // --- License validity check ---
+        $original_app_user_id = get_option('houzi_original_app_user_id');
+        $expiry_date    = get_option('houzi_license_expiry');
 
-        // $onesingnal_user_key_token = (
-        //     array_key_exists("onesingnal_user_key_token", $this->houzi_notify_options) &&
-        //     isset($this->houzi_notify_options['onesingnal_user_key_token'])
-        // )   ?   $this->houzi_notify_options['onesingnal_user_key_token']     :       "";
-        // if (empty($onesingnal_user_key_token)) return;
+        if (empty($original_app_user_id) || empty($expiry_date)) {
+            error_log('Houzi push skipped: no App User ID or expiry stored.');
+            return;
+        }
 
-        $config = Configuration::getDefaultConfiguration()
-            ->setAppKeyToken($this->houzi_notify_options['onesingnal_api_key_token']);
-            //->setUserKeyToken($this->houzi_notify_options['onesingnal_user_key_token']);
-            
+        if (strtotime($expiry_date) < time()) {
+            error_log('license expired on ' . $expiry_date);
+            return;
+        }
 
-        $apiInstance = new DefaultApi(
-            new GuzzleHttp\Client(),
-            $config
+        // --- Firebase endpoint URL (hardcoded — clients cannot change this) ---
+        $firebase_url = defined('HOUZI_FIREBASE_PUSH_URL') ? HOUZI_FIREBASE_PUSH_URL : '';
+
+        if (empty($firebase_url)) {
+            error_log('Firebase push URL not configured.');
+            return;
+        }
+
+        // --- Build payload and call Firebase ---
+        $notif_data  = $this->user_notification->get_user_new_notifications($email);
+        $badge_count = $notif_data['num_notification'];
+        $aliases     = array('external_id' => array(sha1($email)));
+
+        $payload = array(
+            'website_address'=> get_site_url(),
+            'original_app_user_id' => $original_app_user_id,
+            'notification_payload' => array(
+                'headings'        => array('en' => $title),
+                'contents'        => array('en' => $message),
+                'include_aliases' => $aliases,
+                'target_channel'  => 'push',
+                'ios_badgeType'   => 'SetTo',
+                'ios_badgeCount'  => $badge_count,
+                'data'            => $data,
+            )
         );
-        $notif_data = $this->user_notification->get_user_new_notifications($email);
-        $notif_count = $notif_data['num_notification'];
-        // $notification = $this->prepareNotification($title, $message, array(sha1($email)));
-        $aliases = array("external_id" => array(sha1($email)));
 
-        $notification = $this->prepareNotification($title, $message, $aliases, $data, $notif_count);
+        $response = wp_remote_post($firebase_url, array(
+            'headers'     => array('Content-Type' => 'application/json'),
+            'body'        => wp_json_encode($payload),
+            'timeout'     => 15,
+            'data_format' => 'body',
+        ));
 
-        $result = $apiInstance->createNotification($notification);
-        return $result;
+        if (is_wp_error($response)) {
+            error_log('Houzi push error: ' . $response->get_error_message());
+        }
+
+        // --- DEBUG LOG START (REMOVE IN PRODUCTION) ---
+        $debug_logs = get_option('houzi_debug_push_logs', array());
+        if (!is_array($debug_logs)) { 
+            $debug_logs = array(); 
+        }
+        $log_entry = array(
+            'time' => current_time('mysql'),
+            'payload' => $payload,
+            'response' => is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response)
+        );
+        array_unshift($debug_logs, $log_entry);
+        $debug_logs = array_slice($debug_logs, 0, 10); // Keep only last 10
+        update_option('houzi_debug_push_logs', $debug_logs);
+        // --- DEBUG LOG END ---
     }
 
     function remove_html_tags(string $text): string
@@ -490,57 +437,13 @@ class AdminApiNotify
 
     public function houzi_notify_page_init()
     {
-
-        register_setting(
-            'houzi_notify_option_group',
-            // option_group
-            'houzi_notify_options',
-            // option_name
-            array($this, 'houzi_notify_sanitize') // sanitize_callback
-        );
-        add_settings_section(
-            'notify',
-            // id
-            'OneSignal Configurations',
-            // title
-            array($this, 'houzi_notify_section_info'),
-            // callback
-            'houzi-admin-api&tab=notify' // page
-        );
-        add_settings_field(
-            'onesingnal_app_id',
-            // title
-            array($this, 'onesingnal_app_id_callback'),
-            // callback
-            'houzi-admin-api&tab=notify',
-            // page
-            'notify' // section
-        );
-        add_settings_field(
-            'onesingnal_api_key_token',
-            // id
-            'OneSingnal API Key Token',
-            // title
-            array($this, 'onesingnal_api_key_token_callback'),
-            // callback
-            'houzi-admin-api&tab=notify',
-            // page
-            'notify' // section
-        );
+        // No settings to register here anymore as OneSignal fields are removed.
+        // Purchase token and Expiry are handled via the /save-purchase REST API.
     }
 
     public function houzi_notify_sanitize($input)
     {
-        $sanitary_values = array();
-        if (isset($input['onesingnal_app_id'])) {
-            $sanitary_values['onesingnal_app_id'] = sanitize_text_field($input['onesingnal_app_id']);
-        }
-
-        if (isset($input['onesingnal_api_key_token'])) {
-            $sanitary_values['onesingnal_api_key_token'] = sanitize_text_field($input['onesingnal_api_key_token']);
-        }
-
-        return $sanitary_values;
+        return array();
     }
 
     public function houzi_notify_section_info()
@@ -549,38 +452,45 @@ class AdminApiNotify
 
     public function onesingnal_app_id_callback()
     {
-        printf(
-            '<input class="regular-text" type="text" name="houzi_notify_options[onesingnal_app_id]" id="onesingnal_app_id" value="%s" placeholder="xxxxxxxx-xxx-xxxx-xxxx-xxxxxxxxxxxx">',
-            isset($this->houzi_notify_options['onesingnal_app_id']) ? esc_attr($this->houzi_notify_options['onesingnal_app_id']) : ''
-        );
     }
 
     public function onesingnal_api_key_token_callback()
     {
-        printf(
-            '<input class="regular-text" type="password" name="houzi_notify_options[onesingnal_api_key_token]" id="onesingnal_api_key_token" value="%s" placeholder="••••••••••••••••••••••••••••••••••••••••••••">',
-            isset($this->houzi_notify_options['onesingnal_api_key_token']) ? esc_attr($this->houzi_notify_options['onesingnal_api_key_token']) : ''
-        );
     }
 
     public function houzi_notify_tab()
     {
+        $original_app_user_id = get_option('houzi_original_app_user_id');
+        $expiry_date    = get_option('houzi_license_expiry');
+        $is_licensed    = !empty($original_app_user_id) && !empty($expiry_date);
         ?>
         <p>
-            This tab facilitates communication between the Houzez website and the Houzi mobile app by
-            enabling notifications to be sent to the app. This plugin leverages OneSignal as a notification sending manager,
-            allowing for seamless and reliable delivery of notifications to users on the mobile app.
+            Secure push notifications are now handled via Firebase Cloud Functions. 
+            The OneSignal configuration is managed securely on the server side.
         </p>
 
-        <form id="notification-tab-form" method="post" action="options.php">
-            <?php
-            settings_fields('houzi_notify_option_group');
-            do_settings_sections('houzi-admin-api&tab=notify');
-            ?>
-            <?php
-            submit_button();
-            ?>
-        </form>
+        <div class="card">
+            <h2>License Status</h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">License / App User Id</th>
+                    <td>
+                        <code><?php echo $original_app_user_id ? esc_html($original_app_user_id) : 'Not found'; ?></code>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Expiry Date</th>
+                    <td>
+                        <strong><?php echo $expiry_date ? esc_html($expiry_date) : 'Not found'; ?></strong>
+                        <?php 
+                        if ($expiry_date && strtotime($expiry_date) < time()) {
+                            echo ' <span style="color:red;">(Expired)</span>';
+                        }
+                        ?>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <hr style="border-top: 1px solid #bbb;">
 
@@ -606,10 +516,36 @@ class AdminApiNotify
                     </tr>
                 </tbody>
             </table>
-            <button id="test-one-signal-button" type="button" class="button button-primary">
+            <button id="test-one-signal-button" type="button" class="button button-primary" style="margin-bottom: 20px;">
                 <?php esc_html_e('Send Notification Message', 'houzi'); ?>
             </button>
         </div>
+
+        <!-- DEBUG LOG START (REMOVE IN WHEN uPLOADING rEMEMBER!) -->
+        <hr style="border-top: 1px dashed #bbb; margin-top: 20px;">
+        <div class="card" style="border-left: 4px solid #ffba00; max-width: 800px; padding: 20px;">
+            <h2>Debug Logs (REMOVE IN PRODUCTION)</h2>
+            <p>Recent triggers successfully sent to Firebase from Houzi Admin Plugin. Only the last 10 requests are logged.</p>
+            <?php 
+            if (isset($_GET['clear_houzi_logs'])) {
+                delete_option('houzi_debug_push_logs');
+            }
+            $debug_logs = get_option('houzi_debug_push_logs', array());
+            if (empty($debug_logs)) {
+                echo '<p><i>No logs recorded yet. Send a test notification.</i></p>';
+            } else {
+                foreach ($debug_logs as $log) {
+                    echo '<div style="background:#f9f9f9; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">';
+                    echo '<strong>Time UTC:</strong> ' . esc_html($log['time']) . '<br/>';
+                    echo '<strong style="display:block; margin-top:10px;">Payload Sent to Firebase:</strong><pre style="background:#fff; border:1px solid #ccc; padding:10px; overflow:auto;">' . esc_html(wp_json_encode($log['payload'], JSON_PRETTY_PRINT)) . '</pre>';
+                    echo '<strong style="display:block; margin-top:10px;">Firebase Response:</strong><pre style="background:#fff; border:1px solid #ccc; padding:10px; overflow:auto;">' . esc_html($log['response']) . '</pre>';
+                    echo '</div>';
+                }
+            }
+            ?>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=' . sanitize_text_field($_GET['page']) . '&tab=notify&clear_houzi_logs=1')); ?>" class="button button-secondary">Clear Logs</a>
+        </div>
+        <!-- DEBUG LOG END -->
         <?php
     }
 }

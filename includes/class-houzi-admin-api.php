@@ -178,21 +178,8 @@ if ( ! class_exists( 'Houzi_Admin_Api' ) ) {
 		
 		function houzi_admin_api_inc_files() {
 			
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/property_search_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/property_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/property_data_functions.php');
 			require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/touch_base_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/houzez_insights.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/agent_agency_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/crm_dashboard.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/user_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/users_verification_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/property_review_functions.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/security_utils.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/houzez_partners.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/houzez_packages.php');
-			// require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/article_search_functions.php');
-			// require_once (HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/messages_functions.php');
+			require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/revenuecat_purchases_functions.php');
 			//require_once( HOUZI_ADMIN_API_PLUGIN_PATH . 'functions/user_notifications.php');
 			
 		}
