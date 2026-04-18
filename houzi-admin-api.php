@@ -43,6 +43,8 @@ if ( ! defined( 'HOUZI_ADMIN_API_PLUGIN_PATH' ) ) {
 }
 define('HOUZI_ADMIN_API_IMAGE', plugins_url('/images/', __FILE__));
 define('HOUZI_ADMIN_API_SHOW_EXPERIMENTAL_FEATURES', false);
+/// Firebase Notify URL HERE!
+define('HOUZI_FIREBASE_PUSH_URL', 'https://sendpushnotification-klcub7qt3a-uc.a.run.app');
 
 // Include the Composer autoloader defensively.
 if ( ! class_exists( 'ComposerAutoloaderInitAdminApi777' ) ) {
